@@ -1,0 +1,17 @@
+{
+  "name": "counter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@sap/hana-client": "^2.5.86",
+    "cors": "^2.8.5",
+    "expre": "^0.1.1",
+    "express": "^4.17.1"
+  }
+}
