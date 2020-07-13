@@ -3,12 +3,15 @@ const { PerformanceObserver, performance } = require('perf_hooks');
 var t0 = performance.now();
 var util = require('util');
 var hana = require('@sap/hana-client');
+var bodyParser = require('body-parser')
 
-var cors = require('cors')
+const cors = require('cors')
 
 const express = require('express');
 const app = express();
 app.use(cors());
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
 
 
 
@@ -29,10 +32,11 @@ var connOptions = {
 
 var connection = hana.createConnection();
 
-app.get('/', function (req, res) {
+// request for buildings
+app.get('/building', function (req, res) {
     // res.send('LALALALALALALA');
     res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With , yourHeaderFeild');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With, yourHeaderFeild');
     res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
 
     /*
@@ -41,11 +45,66 @@ app.get('/', function (req, res) {
     */
     connection.connect(connOptions, function (err) {
         if (err) throw err;
-        connection.exec('SELECT * FROM TEST WHERE A = ?', [22], function (err, result) {
+        connection.exec(`SELECT *
+        FROM _GEBAEUDE`, function (err, result) {
             if (err) throw err;
 
             console.log(result);
-            res.send('A is ' + result[0].A);
+            res.send(result);
+            // output --> Name: Tee Shirt, Description: V-neck
+            connection.disconnect();
+        })
+    });
+
+});
+
+
+// request for radar system
+app.get('/system', function (req, res) {
+    // res.send('LALALALALALALA');
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With, yourHeaderFeild');
+    res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+
+    /*
+        TODO: get data from the database
+    
+    */
+    connection.connect(connOptions, function (err) {
+        if (err) throw err;
+        connection.exec(`SELECT *
+        FROM RADARSYSTEM`, function (err, result) {
+            if (err) throw err;
+
+            console.log(result);
+            res.send(result);
+            // output --> Name: Tee Shirt, Description: V-neck
+            connection.disconnect();
+        })
+    });
+
+});
+
+// request for rooms
+app.get('/rooms/:id', function (req, res) {
+    // res.send('LALALALALALALA');
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With, yourHeaderFeild');
+    res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+
+    /*
+        TODO: get data from the database
+    
+    */
+    connection.connect(connOptions, function (err) {
+        if (err) throw err;
+        connection.exec(`SELECT *
+        FROM  _RAUM
+        WHERE _RAUM._GEBAEUDE_ID = ${req.params.id}`, function (err, result) {
+            if (err) throw err;
+
+            console.log(result);
+            res.send(result);
             // output --> Name: Tee Shirt, Description: V-neck
             connection.disconnect();
         })
@@ -54,45 +113,74 @@ app.get('/', function (req, res) {
 });
 
 //  TODO: post or put?
-app.post('/radar_data', function (req, res) {
-    console.log(req.params);
+app.post('/radar_data',
+    // validation
+    function (req, res, next) {
+        // res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With, yourHeaderFeild');
+        res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+        if (!req.body.name) {
+            return res.status(400).send("the name cannot be null")
+        }
+        if (!req.body.room) {
+            return res.status(400).send("please select a room")
+        }
+        next();
+    },
 
-    /* 
+
+    function (req, res, next) {
+        // console.log(req.params);
+        // validation
+        // res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With, yourHeaderFeild');
+        res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+
+        var params = {
+            "name": req.body.name,
+            "in": parseInt(req.body.in),
+            "out": parseInt(req.body.out),
+            "room": parseInt(req.body.room),
+            "unifiedid": parseInt(req.body.unifiedid),
+        }
+        // var name = params.name;
+
+        /* 
+        
+            TODO: 
+            - resolve JSON data
+            - establish connection with SAP HANA Database
+            - update the data to the database
     
-        TODO: 
-        - resolve JSON data
-        - establish connection with SAP HANA Database
-        - update the data to the database
+        */
+        console.log(typeof params.name)
 
-    */
-
-    // connection.connect(connOptions, function (err) {
-    //     if (err) {
-    //         return console.error(err);
-    //     }
-    //     var sql = 'CREATE TABLE test(a INT, b INT, c INT);';
-    //     var rows = connection.exec(sql, function (err, rows) {
-    //         if (err) {
-    //             return console.error(err);
-    //         }
-    //         console.log(util.inspect(rows, { colors: false }));
-    //         var t1 = performance.now();
-    //         console.log("time in ms " + (t1 - t0));
-    //         connection.disconnect(function (err) {
-    //             if (err) {
-    //                 return console.error(err);
-    //             }
-    //         });
-    //     });
-    // });
+        connection.connect(connOptions, function (err) {
+            if (err) {
+                return console.error(err);
+            }
+            var sql = `INSERT INTO RADARSENSOR(_POSITIONIN,_POSITIONOUT,_UNIFIEDRADARID,_RAUM_ID,_NAME) VALUES(${params.in},${params.out},${params.unifiedid},${params.room},'${params.name}');`;
+            // var sql = `INSERT INTO RADARSENSOR(_NAME,_POSITIONIN,_POSITIONOUT,_UNIFIEDRADARID,_RAUM_ID) VALUES('haha',1,0,2,1);`;
+            var rows = connection.exec(sql, function (err, rows) {
+                if (err) {
+                    return console.error(err);
+                }
+                console.log(util.inspect(rows, { colors: false }));
+                var t1 = performance.now();
+                console.log("time in ms " + (t1 - t0));
+                connection.disconnect(function (err) {
+                    if (err) {
+                        return console.error(err);
+                    }
+                });
+            });
+        });
 
 
-
-
-
-
-    res.send('Hello POST');
-})
+        res.status(201).send("success");
+    })
 
 const port = process.env.PORT || 3030;
 app.listen(port, function () {
