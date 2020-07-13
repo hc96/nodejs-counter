@@ -58,6 +58,58 @@ app.get('/building', function (req, res) {
 
 });
 
+// request for sensors
+app.get('/sensor', function (req, res) {
+    // res.send('LALALALALALALA');
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With, yourHeaderFeild');
+    res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+
+    /*
+        TODO: get data from the database
+    
+    */
+    connection.connect(connOptions, function (err) {
+        if (err) throw err;
+        connection.exec(`SELECT *
+        FROM RADARSENSOR,_RAUM WHERE _RAUM.RAUM_ID = RADARSENSOR._RAUM_ID`, function (err, result) {
+            if (err) throw err;
+
+            console.log(result);
+            res.send(result);
+            // output --> Name: Tee Shirt, Description: V-neck
+            connection.disconnect();
+        })
+    });
+
+});
+
+// request for radar hubs
+app.get('/rhub', function (req, res) {
+    // res.send('LALALALALALALA');
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With, yourHeaderFeild');
+    res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+
+    /*
+        TODO: get data from the database
+    
+    */
+    connection.connect(connOptions, function (err) {
+        if (err) throw err;
+        connection.exec(`SELECT *
+        FROM RADAR_HUB,_GEBAEUDE,RADARSYSTEM WHERE RADAR_HUB._GEBAEUDE_ID = _GEBAEUDE.ID AND RADAR_HUB.RADARSYSTEM_ID = RADARSYSTEM.ID `, function (err, result) {
+            if (err) throw err;
+
+            console.log(result);
+            res.send(result);
+            // output --> Name: Tee Shirt, Description: V-neck
+            connection.disconnect();
+        })
+    });
+
+});
+
 
 // request for radar system
 app.get('/system', function (req, res) {
@@ -112,7 +164,7 @@ app.get('/rooms/:id', function (req, res) {
 
 });
 
-//  TODO: post or put?
+//  add radar to database
 app.post('/radar_data',
     // validation
     function (req, res, next) {
@@ -165,11 +217,15 @@ app.post('/radar_data',
             // var sql = `INSERT INTO RADARSENSOR(_NAME,_POSITIONIN,_POSITIONOUT,_UNIFIEDRADARID,_RAUM_ID) VALUES('haha',1,0,2,1);`;
             var rows = connection.exec(sql, function (err, rows) {
                 if (err) {
+                    res.send("fail");
                     return console.error(err);
+                } else {
+                    res.status(201).send("success");
                 }
                 console.log(util.inspect(rows, { colors: false }));
                 var t1 = performance.now();
                 console.log("time in ms " + (t1 - t0));
+
                 connection.disconnect(function (err) {
                     if (err) {
                         return console.error(err);
@@ -179,8 +235,161 @@ app.post('/radar_data',
         });
 
 
-        res.status(201).send("success");
+
     })
+
+
+//  edit radar
+app.post('/edit_radar',
+    // validation
+    function (req, res, next) {
+        // res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With, yourHeaderFeild');
+        res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+        if (!req.body.name) {
+            return res.status(400).send("the name cannot be null")
+        }
+        if (!req.body.room) {
+            return res.status(400).send("please select a room")
+        }
+        next();
+    },
+
+
+    function (req, res, next) {
+        // console.log(req.params);
+        // validation
+        // res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With, yourHeaderFeild');
+        res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+
+        var params = {
+            "id": parseInt(req.body.id),
+            "name": req.body.name,
+            "in": parseInt(req.body.in),
+            "out": parseInt(req.body.out),
+            "room": parseInt(req.body.room),
+            "unifiedid": parseInt(req.body.unifiedid),
+        }
+        // var name = params.name;
+
+        /* 
+        
+            TODO: 
+            - resolve JSON data
+            - establish connection with SAP HANA Database
+            - update the data to the database
+    
+        */
+        console.log(typeof params.name)
+
+        connection.connect(connOptions, function (err) {
+            if (err) {
+                return console.error(err);
+            }
+            var sql = `UPDATE RADARSENSOR SET _NAME='${params.name}',_POSITIONIN=${params.in},_POSITIONOUT=${params.out},_RAUM_ID=${params.room},_UNIFIEDRADARID=${params.unifiedid}  WHERE ID = ${params.id};`;
+            // var sql = `INSERT INTO RADARSENSOR(_NAME,_POSITIONIN,_POSITIONOUT,_UNIFIEDRADARID,_RAUM_ID) VALUES('haha',1,0,2,1);`;
+            var rows = connection.exec(sql, function (err, rows) {
+                if (err) {
+                    res.send("fail");
+                    return console.error(err);
+                } else {
+                    res.status(201).send("success");
+                }
+                console.log(util.inspect(rows, { colors: false }));
+                var t1 = performance.now();
+                console.log("time in ms " + (t1 - t0));
+
+                connection.disconnect(function (err) {
+                    if (err) {
+                        return console.error(err);
+                    }
+                });
+            });
+        });
+    })
+
+
+//  add radar hub to database
+app.post('/radar_hub',
+    // validation
+    function (req, res, next) {
+        // res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With, yourHeaderFeild');
+        res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+        if (!req.body.name) {
+            return res.status(400).send("the name cannot be null")
+        }
+        if (!req.body.building) {
+            return res.status(400).send("please select a building")
+        }
+        if (!req.body.system) {
+            return res.status(400).send("please select a radar system")
+        }
+        next();
+    },
+
+
+    function (req, res, next) {
+        // console.log(req.params);
+        // validation
+        // res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With, yourHeaderFeild');
+        res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+
+        var params = {
+            "name": req.body.name,
+            "pi_id": parseInt(req.body.pi_id),
+            "secure_id": parseInt(req.body.secure_id),
+            "building": parseInt(req.body.building),
+            "system": parseInt(req.body.system),
+        }
+        // var name = params.name;
+
+        /* 
+        
+            TODO: 
+            - resolve JSON data
+            - establish connection with SAP HANA Database
+            - update the data to the database
+    
+        */
+        console.log(typeof params.name)
+
+        connection.connect(connOptions, function (err) {
+            if (err) {
+                return console.error(err);
+            }
+            var sql = `INSERT INTO RADAR_HUB(_PI_ID,_SECUREID,RADARSYSTEM_ID,_GEBAEUDE_ID,_NAME) VALUES(${params.pi_id},${params.secure_id},${params.system},${params.building},'${params.name}');`;
+            // var sql = `INSERT INTO RADARSENSOR(_NAME,_POSITIONIN,_POSITIONOUT,_UNIFIEDRADARID,_RAUM_ID) VALUES('haha',1,0,2,1);`;
+            var rows = connection.exec(sql, function (err, rows) {
+                if (err) {
+                    res.send("fail");
+                    return console.error(err);
+                } else {
+                    res.status(201).send("success");
+                }
+                console.log(util.inspect(rows, { colors: false }));
+                var t1 = performance.now();
+                console.log("time in ms " + (t1 - t0));
+
+                connection.disconnect(function (err) {
+                    if (err) {
+                        return console.error(err);
+                    }
+                });
+            });
+        });
+    })
+
+
+
+
+
 
 const port = process.env.PORT || 3030;
 app.listen(port, function () {
